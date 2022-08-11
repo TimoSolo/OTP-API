@@ -44,7 +44,7 @@ class OTP extends Notification
         return (new MailMessage)
             ->line('Here is your One Time Password: ' . $this->otp)
             ->line('Please enter it on the website or click the link below.')
-            ->action('Click to verify OTP', url('/otp/verify?otp=' . $this->otp . ',email=' . $this->email))
+            ->action('Click to verify OTP', url('/otp/verify', [ 'email' => $this->email, 'code' => $this->otp]))
             ->line('Thank you for using our app!');
     }
 

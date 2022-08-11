@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OTPController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,20 +28,24 @@ Route::get('otp', function () {
     return view('otp-send');
 })->name('otp');
 
-Route::get('otp/verify', function () {
-    return view('otp-verify');
-})->name('otp.verify');
+Route::get('otp/verify', [OTPController::class, 'showVerify']);
+Route::get('otp/verify/{email}/{code?}', [OTPController::class, 'showVerify'])
+    ->name('otp.verify');
 
 Route::get('otp/confirmed', function () {
     return view('otp-confirmed');
 })->name('otp.confirmed');
 
 Route::post('otp', [OTPController::class, 'sendOTP'])
-                //->middleware('throttle:6,1')
-                ->name('otp.send');
+    //->middleware('throttle:6,1')
+    ->name('otp.send');
 
 Route::post('otp/verify', [OTPController::class, 'verifyOTP'])
-                //->middleware('throttle:6,1')
-                ->name('otp.check');
+    //->middleware('throttle:6,1')
+    ->name('otp.check');
 
-require __DIR__.'/auth.php';
+Route::get('otp/done', function () {
+    return view('otp-done');
+})->name('otp.done');
+
+require __DIR__ . '/auth.php';

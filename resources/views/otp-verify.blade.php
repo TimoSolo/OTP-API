@@ -6,16 +6,15 @@
             </a>
         </x-slot>
         
+        @if (session('status') == 'code-sent')
         <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A code link has been sent to the email address you provided.') }}
+            {{ __('A One Time Code has been sent to the email address you provided.') }}
         </div>
+        @endif
 
         <div class="mb-4 text-sm text-gray-600">
             Please enter the One Time Code below.
         </div>
-
-        <!-- Session Status -->
-        <x-auth-session-status class="mb-4" :status="session('status')" />
 
         <!-- Validation Errors -->
         <x-auth-validation-errors class="mb-4" :errors="$errors" />
@@ -27,14 +26,14 @@
             <div>
                 <x-label for="email" :value="__('Email')" />
 
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required />
+                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="$email" required />
             </div>
 
             <!-- Code -->
             <div>
                 <x-label for="code" :value="__('Code')" />
 
-                <x-input id="code" class="block mt-1 w-full" type="number" name="code" :value="old('code')" required autofocus />
+                <x-input id="code" class="block mt-1 w-full" type="number" name="code" :value="$code" required autofocus />
             </div>
 
             <div class="flex items-center justify-end mt-4">
