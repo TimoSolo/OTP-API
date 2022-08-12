@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('otp-send'); // return view('welcome');
 });
 
 Route::get('/dashboard', function () {

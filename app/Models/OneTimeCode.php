@@ -11,6 +11,8 @@ class OneTimeCode extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -18,6 +20,7 @@ class OneTimeCode extends Model
      */
     protected $fillable = [
         'email',
+        'resends',
     ];
 
     protected static function boot()
@@ -25,17 +28,46 @@ class OneTimeCode extends Model
         parent::boot();
 
         OneTimeCode::creating(function ($model) {
-            // check if allowed to request a new code?
-            // TODO: config
-            $valid_for_x_per_hour = 3;
-            $valid_date = Carbon::now()->subHour();
-            $otp_count =  OneTimeCode::where("email", $model->email)->where("created_at", ">=", $valid_date)->count(); // get the latest code for this email address
-
-            if ($otp_count >= $valid_for_x_per_hour) {
-                throw new Exception("Code request limit of $valid_for_x_per_hour per hour exceeded for " . $model->email . ".");
-            }
             $model->code = OneTimeCode::generateCode();
         });
+    }
+
+    public static function createOrReuseCode($email)
+    {
+        // check if can resend old one
+        $otp =  OneTimeCode::where("email", $email)->latest()->first();
+        if ($otp) {
+            $resend_minutes = config('otp.otp_resend_valid_minutes');
+            $valid_date = Carbon::now()->subMinutes($resend_minutes);
+            // if valid time and resends:
+            if ($otp->created_at >= $valid_date) {
+                $resend_times = config('otp.otp_resend_times');
+                if ($otp->resends < $resend_times) {
+                    $otp->resends = $otp->resends + 1;
+                    $otp->valid_from = Carbon::now();
+                    $otp->save();
+                    return $otp;
+                } else {
+                    // cant resend so many
+                    throw new Exception("Resend limit of $resend_times in the last $resend_minutes minutes exceeded for " . $email . ".");
+                }
+            }
+        }
+
+        // check if allowed to request a new code?
+        $otp_per_hour = config('otp.otp_per_hour');
+        $valid_date = Carbon::now()->subHour();
+        $otp_count =  OneTimeCode::where("email", $email)->where("valid_from", ">=", $valid_date)->count(); // get the latest code for this email address
+
+        if ($otp_count >= $otp_per_hour) {
+            throw new Exception("Code request limit of $otp_per_hour per hour exceeded for " . $email . ".");
+        }
+
+        // passed tests, create new code
+        $otp = new OneTimeCode();
+        $otp->email = $email;
+        $otp->save();
+        return $otp;
     }
 
     public static function generateCode()
@@ -48,7 +80,7 @@ class OneTimeCode extends Model
             $code = substr("000000" . random_int(0, 999999), -6); // get the last 6 chars of zero padded number
         } while (
             OneTimeCode::where("code", $code)
-            ->where("created_at", ">=", $one_day_ago)
+            ->where("valid_from", ">=", $one_day_ago)
             ->exists()
         );
 
@@ -69,7 +101,7 @@ class OneTimeCode extends Model
         }
 
         // check if time valid
-        if ($otp->created_at < $valid_date) {
+        if ($otp->valid_from < $valid_date) {
             throw new Exception("Code has expired.");
         }
 

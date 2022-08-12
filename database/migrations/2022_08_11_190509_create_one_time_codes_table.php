@@ -17,7 +17,9 @@ return new class extends Migration
             $table->id();
             $table->string('email');
             $table->string('code', 6);
-            $table->timestamps();
+            $table->tinyInteger('resends')->default(0); 
+            $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('valid_from')->useCurrent();
             $table->dateTime('used_at')->nullable();
         });
     }

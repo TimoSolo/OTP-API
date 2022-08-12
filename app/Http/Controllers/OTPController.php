@@ -28,13 +28,11 @@ class OTPController extends Controller
     {
         $email = $request->email;
 
-        // OPTIONAL: check if user exists before 
+        // OPTIONAL: check if user exists before sending a code
         $userExists = true; // User::where('email', $email)->first();
-        if ($userExists) { // if no user found pretend its ok to prevent probing for valid email addresses
+        if ($userExists) { 
             try {
-                $otp = new OneTimeCode();
-                $otp->email = $email;
-                $otp->save();
+                $otp = OneTimeCode::createOrReuseCode($email);
                 // email OTP
                 Notification::route('mail', $email)->notify(new OTP($otp));
             } catch (\Throwable $th) {
