@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OneTimeCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use App\Models\User;
 use App\Notifications\OTP;
+use PhpParser\Node\Stmt\TryCatch;
 
 class OTPController extends Controller
 {
@@ -14,7 +16,7 @@ class OTPController extends Controller
     {
         $email = $request->email;
         $code = $request->code;
-        return view('otp-verify',compact('email', 'code'));
+        return view('otp-verify', compact('email', 'code'));
     }
     /**
      * Send a new OTP notification.
@@ -29,14 +31,17 @@ class OTPController extends Controller
         // OPTIONAL: check if user exists before 
         $userExists = true; // User::where('email', $email)->first();
         if ($userExists) { // if no user found pretend its ok to prevent probing for valid email addresses
-
-            // TODO: generate OTP
-            $otp = "123456";
-
-            // email OTP
-            Notification::route('mail', $email)->notify(new OTP($otp, $email));
+            try {
+                $otp = new OneTimeCode();
+                $otp->email = $email;
+                $otp->save();
+                // email OTP
+                Notification::route('mail', $email)->notify(new OTP($otp));
+            } catch (\Throwable $th) {
+                return redirect()->route('otp.verify', compact('email'))->withErrors($th->getMessage());
+            }
         }
-        return redirect()->route('otp.verify',compact('email'))->with('status','code-sent');
+        return redirect()->route('otp.verify', compact('email'))->with('status', 'code-sent');
     }
 
     /**
@@ -49,7 +54,16 @@ class OTPController extends Controller
     {
         $email = $request->email;
         $code = $request->code;
-        // return back()->withErrors(['Incorrect code or email.']);
-        return redirect()->route('otp.done');
+
+        try {
+            $otp = OneTimeCode::getValidOTP($email, $code);
+            if ($otp) {
+                return redirect()->route('otp.done');
+            } else {
+                return back()->withErrors(['Incorrect code or email.']);
+            }
+        } catch (\Throwable $th) {
+            return redirect()->route('otp.verify', compact('email', 'code'))->withErrors($th->getMessage());
+        }
     }
 }

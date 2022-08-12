@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\OneTimeCode;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -16,10 +17,9 @@ class OTP extends Notification
      *
      * @return void
      */
-    public function __construct($otp, $email)
+    public function __construct(OneTimeCode $otp)
     {
         $this->otp = $otp;
-        $this->email = $email;
     }
 
     /**
@@ -42,9 +42,9 @@ class OTP extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->line('Here is your One Time Password: ' . $this->otp)
+            ->line('Here is your One Time Password: ' . $this->otp->code)
             ->line('Please enter it on the website or click the link below.')
-            ->action('Click to verify OTP', url('/otp/verify', [ 'email' => $this->email, 'code' => $this->otp]))
+            ->action('Click to verify OTP', url('/otp/verify', [ 'email' => $this->otp->email, 'code' => $this->otp->code]))
             ->line('Thank you for using our app!');
     }
 
